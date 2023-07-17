@@ -1,0 +1,42 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul 17 09:45:54 2023
+
+@author: carlo
+"""
+
+##########LOWPASS PYTHON
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import pathlib #librería para cargar datos
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from scipy.fftpack import fft, ifft
+import scipy
+
+from scipy.signal import butter,lfilter,freqz
+from scipy.signal import find_peaks
+import scipy
+
+from scipy.signal import butter,lfilter,freqz
+from scipy.signal import find_peaks
+
+sample=pd.read_csv("C:/Users/carlo/Documents/MUESTRAS_ECG/DATOS_ORIGINALES_SEÑAL/0009.txt",header=None)
+sample=np.array(sample).flatten()
+sample=-1*sample
+sample=sample-np.mean(sample)
+plt.figure(figsize=(15,5))
+plt.plot(sample)
+
+
+def butter_lowpass(cutoff, fs, order=5):
+    return scipy.signal.butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    y = scipy.signal.lfilter(b, a, data)
+    return y
