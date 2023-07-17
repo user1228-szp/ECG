@@ -1,0 +1,133 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul 14 09:36:27 2023
+
+@author: carlo
+"""
+
+############AUTOMATIZACION DE ANALISIS, CARPETA###############
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import pathlib #librería para cargar datos
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from scipy.fftpack import fft, ifft
+import scipy
+
+from scipy.signal import butter,lfilter,freqz
+
+
+
+ejemplo_dir = '' #nombre carpeta donde están los datos
+sample = np.array(ejemplo_dir).flatten()
+#tiene que estar en la nube con permisos ilimitados
+directorio = pathlib.Path(ejemplo_dir)
+señales=[]
+
+def graficspect(i):
+###############espectograma de colores
+    plt.specgram(np.array(i).flatten() , Fs=195, cmap="rainbow")
+    plt.title('Espectograma de una señal ECG')
+    plt.xlabel("DATOS")
+    plt.ylabel("TIEMPO")
+    cbar = plt.colorbar()
+    cbar.set_label('Etiquetas de colores')
+    plt.show()
+
+def powerspectrum(sample):
+    z = fft(sample)
+    N = len(z)
+    n = np.arange(N)
+    # get the sampling rate
+    sr = 195
+    T = N/sr
+    freq = n/T
+
+    # Get the one-sided specturm
+    n_oneside = N//2
+    # get the one side frequency
+    f_oneside = freq[:n_oneside]
+
+    plt.figure(figsize = (12, 6))
+    #plt.plot(f_oneside, np.abs(X[:n_oneside]), 'b')
+    plt.plot(f_oneside[1:-1], np.abs(z[:n_oneside])[1:-1], 'b')
+    plt.xlabel('Freq (Hz)')
+    plt.ylabel('FFT Amplitude |X(freq)|')
+    plt.xlim(0,10)
+    plt.show()
+
+def transformada(distancia,señ):
+    X = fft(distancia[señ])
+    N = len(X)
+    n = np.arange(N)
+    # get the sampling rate
+    sr = 195
+    T = N/sr
+    freq = n/T
+
+    # Get the one-sided specturm
+    n_oneside = N//2
+    # get the one side frequency
+    f_oneside = freq[:n_oneside]
+
+    plt.figure(figsize = (12, 6))
+    #plt.plot(f_oneside, np.abs(X[:n_oneside]), 'b')
+    ejx=f_oneside[:]/100
+    ejy=np.abs(X[:n_oneside])[:]
+    ejy=ejy[(ejx>0.05) & (ejx<0.4)]
+    ejx=ejx[(ejx>0.05) & (ejx<0.4)]
+    plt.plot(ejx, ejy, 'b')
+    plt.title('transformada')
+    plt.xlabel('Freq (Hz)')
+    plt.ylabel('FFT Amplitude |X(freq)|')
+    plt.axvline(x = 0.15, color = 'r', linestyle = '-')
+    plt.show()
+    return(ejx,ejy)
+
+def logaritmos(distancia,señ):
+    plt.figure(figsize = (12, 6))
+    x,y=transformada(distancia,señ)
+    #plt.plot(f_oneside, np.abs(X[:n_oneside]), 'b')
+    plt.plot(np.log(x), np.log(y), 'b')
+    plt.title('logaritmos')
+    plt.xlabel('log(Freq (Hz))')
+    plt.ylabel('FFT Amplitude |X(freq)|')
+    plt.axvline(x = np.log(0.15), color = 'r', linestyle = '-')
+    plt.show()
+
+
+for fichero in directorio.iterdir():
+    #señales.append(fichero)
+    datos=pd.read_csv(fichero,names=[fichero.name])
+    #if len(datos)>60 and len(datos)<120:
+    sample = datos
+    sample_inverted= -1*datos
+    señales.append(sample_inverted)
+
+
+#graficspect(i)
+#powerspectrum(sample)
+
+
+
+distancia=[]
+for i in range(0,len(señales)):
+  dist1=[]
+  for j in range(0, len(señales[i])-1):
+    dist1.append(float(np.array(señales[i])[j+1])-float(np.array(señales[i])[j]))
+  distancia.append(dist1)
+
+for i in señales:
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    plt.title('Señal original')
+    ax.plot(i,'r')##########grafica sin filtros
+    plt.xlim(0,1000)
+    plt.show()
+    #plt.plot(np.array(señales[señ])[:-1],distancia[señ])
+for i in range(0,len(distancia)):
+    logaritmos(distancia,i)
