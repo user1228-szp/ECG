@@ -1,0 +1,173 @@
+################# Logistic Regression #################
+
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+from statsmodels.formula.api import logit
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+from patsy import dmatrices
+# por esta ocasion, no pongo las graficas inline, para poder mostrarlas en un␣slide aparte...
+#%matplotlib inline
+plt.ioff() # pongo Interactive Mode Off
+plt.style.use('seaborn')
+
+####################################################################
+
+print(sm.datasets.fair.SOURCE)
+
+####################################################################
+
+print( sm.datasets.fair.NOTE)
+
+####################################################################
+
+dta = sm.datasets.fair.load_pandas().data
+dta
+
+####################################################################
+
+print(dta.describe())
+
+####################################################################
+
+dta['affair'] = (dta['affairs'] > 0).astype(int)
+dta['affair']
+
+####################################################################
+
+sns.countplot(x='affair',data=dta, palette='hls')
+plt.show()
+
+####################################################################
+
+sns.catplot(x="occupation", y="affair", data=dta, kind="bar", height = 8)
+plt.show()
+
+####################################################################
+
+data = dta
+cat_vars = ['rate_marriage', 'religious','educ', 'occupation','occupation_husb']
+# Una forma de hacerlo es mediante Pandas...
+cat_dummy = pd.get_dummies(data['rate_marriage'], prefix='rate_marriage',drop_first=True)
+cat_dummy
+
+####################################################################
+
+data = dta
+cat_vars = ['rate_marriage', 'religious','educ', 'occupation','occupation_husb']
+y, X = dmatrices('affair ~ C(occupation) + C(educ) + C(occupation_husb)'
+'+ C(rate_marriage) + age + yrs_married + children'
+'+ C(religious)', data, return_type = 'dataframe')
+
+####################################################################
+
+X_train, X_test, y_train, y_test = train_test_split(X, pd.Series.ravel(y),test_size=0.3, random_state=0)
+
+####################################################################
+
+logit_model=sm.Logit(y_train,X_train)
+result=logit_model.fit(method='newton')
+print(result.summary2())
+
+####################################################################
+
+y_pred1 = result.predict(X_test)
+y_pred1 = [0 if x < 0.5 else 1 for x in y_pred1]
+confusion_matrix = metrics.confusion_matrix(y_test, y_pred1)
+print(confusion_matrix)
+
+####################################################################
+
+print(metrics.classification_report(y_test, y_pred1))
+
+####################################################################
+
+logreg = LogisticRegression(solver='newton-cg', C = 1e9)
+logreg.fit(X_train, y_train)
+
+####################################################################
+
+y_pred = logreg.predict(X_test)
+print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(logreg.score(X_test, y_test)))
+
+####################################################################
+
+y_pred2 = logreg.predict(X_test)
+confusion_matrix = metrics.confusion_matrix(y_test, y_pred2)
+print(confusion_matrix)
+
+####################################################################
+
+print(metrics.classification_report(y_test, y_pred2))
+
+####################################################################
+
+plt.rcParams['figure.figsize'] = (8, 6)
+disp1 = ConfusionMatrixDisplay.from_predictions(y_pred, y_test)
+disp1.ax_.set_title('Matriz de confusion. Sin normalizar',{'fontsize':15})
+plt.show()
+
+####################################################################
+
+np.round(logreg.coef_,4)
+
+####################################################################
+
+# Authors: Tom Dupre la Tour <tom.dupre-la-tour@m4x.org>
+# License: BSD 3 clause
+from sklearn.datasets import make_blobs
+from sklearn.linear_model import LogisticRegression
+# make 3-class dataset for classification
+centers = [[-5, 0], [0, 1.5], [5, -1]]
+X, y = make_blobs(n_samples=1000, centers=centers, random_state=40)
+transformation = [[0.4, 0.2], [-0.4, 1.2]]
+X = np.dot(X, transformation)
+for multi_class in ('multinomial', 'ovr'):
+  clf = LogisticRegression(solver='sag', max_iter=100, random_state=42,
+  multi_class=multi_class).fit(X, y)
+  # print the training scores
+  print("training score : %.3f (%s)" % (clf.score(X, y), multi_class))
+  # create a mesh to plot in
+  h = .02
+  # step size in the mesh
+  x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+  y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+  xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+  np.arange(y_min, y_max, h))
+  # Plot the decision boundary. For that, we will assign a color to each
+  # point in the mesh [x_min, x_max]x[y_min, y_max].
+  Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+  # Put the result into a color plot
+  Z = Z.reshape(xx.shape)
+  plt.figure()
+  plt.contourf(xx, yy, Z, cmap=plt.cm.Paired)
+  plt.title("Decision surface of LogisticRegression (%s)" % multi_class)
+  plt.axis('tight')
+  # Plot also the training points
+  colors = "bry"
+for i, color in zip(clf.classes_, colors):
+  idx = np.where(y == i)
+  plt.scatter(X[idx, 0], X[idx, 1], c=color, cmap=plt.cm.Paired,
+  edgecolor='black', s=20)
+  # Plot the three one-against-all classifiers
+  xmin, xmax = plt.xlim()
+  ymin, ymax = plt.ylim()
+  coef = clf.coef_
+  intercept = clf.intercept_
+
+def plot_hyperplane(c, color):
+  def line(x0):
+    return (-(x0 * coef[c, 0]) - intercept[c]) / coef[c, 1]
+  plt.plot([xmin, xmax], [line(xmin), line(xmax)],ls="--", color=color)
+for i, color in zip(clf.classes_, colors):
+  plot_hyperplane(i, color)
+
+  plt.show()
