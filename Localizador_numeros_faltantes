@@ -1,0 +1,18 @@
+############BUSCADOR DE ARCHIVOS FALTANTES
+def obtener_numeros_faltantes(lista_strings):
+    # Obtener el número más bajo y más alto en la lista original
+    numeros_presentes = [int(s.split(".")[0]) for s in lista_strings]
+    min_num = min(numeros_presentes)
+    max_num = max(numeros_presentes)
+
+    # Crear una lista con todos los números posibles en el rango dado
+    numeros_posibles = list(range(min_num, max_num + 1))
+
+    # Encontrar los números faltantes
+    numeros_faltantes = [num for num in numeros_posibles if num not in numeros_presentes]
+
+    return numeros_faltantes
+
+# Ejemplo de uso
+numeros_faltantes = obtener_numeros_faltantes(nombres)
+print(numeros_faltantes)
