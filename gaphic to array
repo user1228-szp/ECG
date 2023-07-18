@@ -1,0 +1,74 @@
+############GENERA DE LA GRAFICA A LA MATRIZ###############
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import pathlib #librería para cargar datos
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from scipy.fftpack import fft, ifft
+import scipy
+
+from scipy.signal import butter,lfilter,freqz
+from scipy.signal import find_peaks
+import pathlib #librería para cargar datos
+
+import re
+
+import matplotlib.pylab as pylab
+
+from PIL import Image as im
+
+def image_to_array(imagen):
+    size=(480,480)
+    fig=plt.figure(figsize=(4.8, 4.8))
+    fig = plt.specgram(np.array(imagen).flatten(), Fs=195, cmap="gray")
+    fig = plt.axis("off")
+    fig = plt.tight_layout()
+    fig = plt.gcf()
+    fig.canvas.draw()
+    arr = np.array(fig.canvas.renderer.buffer_rgba())
+    gray_arr = np.dot(arr[..., :3], [0.2989, 0.5870, 0.1140])
+
+    # Redimensiona el arreglo al tamaño deseado
+    resized_arr = np.resize(gray_arr, size)
+    #plt.close(fig)
+    # Retorna el arreglo redimensionado
+    return resized_arr.flatten()
+
+
+ejemplo_dir = '/content/drive/MyDrive/PYTHON/DATOS_10MIN' #carpeta donde están los datos
+#tiene que estar en la nube con permisos ilimitados
+directorio = pathlib.Path(ejemplo_dir)
+nombres=[]
+for fichero in directorio.iterdir():
+    nombres.append(fichero.name)
+
+
+r = re.compile(r"(\d+)")
+nombres.sort(key=lambda x: int(r.search(x).group(1)))
+print(nombres)
+
+señales=[] #nuevo arreglo de señales ordenados
+
+for i in range(0,len(nombres)):
+ for fichero in directorio.iterdir():
+   if fichero.name==nombres[i]:
+   # print("true")
+    datos=pd.read_csv(fichero,names=[fichero.name])
+    señales.append(datos)
+
+
+
+imagee=image_to_array(señales[1]).reshape((480,480))
+import matplotlib.pylab as pylab
+pylab.figure(figsize=(8,8))
+pylab.axis('off')
+pylab.imshow(imagee,cmap="gray")
+
+
+image_to_array(smooth_muestra)
+  spectogram_signals.append(spectogram_signals)
+  print(len(spectogram_muestra))
