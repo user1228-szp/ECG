@@ -1,0 +1,128 @@
+%%%%%%% ANALIZADOR INDIVIDUAL CON LA GENERACION DE ARCHIVO DE PICOS LOCALIZADOS
+
+clc
+clear
+clf
+close all
+clc
+sample_rate = 11643/60;
+
+    h = '01';
+
+    first_figure = figure(1);
+    set(first_figure,'Units','normalized','position',[0.05 0.05 0.85 0.85])
+
+    graph_1 = load([h,'.txt']);
+    arch_invert_1 = -graph_1;
+    1*graph_1;
+
+    sample_vector_1 = 0:1:length(arch_invert_1) - 1;
+    time_vector_1 = 1/sample_rate*sample_vector_1;
+    mean_value_1 = mean(arch_invert_1);
+    signal_normalized_1 = arch_invert_1 - mean_value_1;
+
+%%%%%%%%%%%%%%%%%termina primer seccion%%%%%%%%%%%%%%%%%%%%
+    %Grap_1_1 = plot(time_vector,signal_normalized,'b.-');
+%%%%%%%%%%%%%%%%%segunda primer seccion%%%%%%%%%%%%%%%%%%%%
+    x_1 =   arch_invert_1;
+    t_1 = 1/sample_rate*(0:length(x_1)-1);
+    x_filtred = lowpass(x_1,50,sample_rate);
+    [frec_2,Power_2] = power_spectrum(x_1,sample_rate,t_1(end));
+    [frec_2b,Power_2b] = power_spectrum(x_filtred,sample_rate,t_1(end));
+%%%%%%%%%%%%%%%%%tercer primer seccion%%%%%%%%%%%%%%%%%%%%
+    [p1,s1,mu1] = polyfit((1:numel(arch_invert_1))',arch_invert_1,6);
+    f_y1 = polyval(p1,(1:numel(arch_invert_1))',[],mu1);
+    file_ECG = arch_invert_1 - f_y1;
+    smooth = sgolayfilt(file_ECG,7,21);
+    mean_signal = mean(smooth);
+    picos_localizados = [];
+
+for i = 2:length(smooth)-1
+    if smooth(i-1) < smooth(i) && smooth(i+1) < smooth(i)
+        picos_localizados_step = i;
+        picos_localizados_mem = [picos_localizados picos_localizados_step];
+        picos_localizados = picos_localizados_mem;
+    end
+end
+
+buscador_val_1 = smooth(picos_localizados)- mean_signal;
+time_buscador_val_1 = t_1(picos_localizados);
+index_low_picos_1 = find(buscador_val_1>80);
+
+picos_interesantes_1 = buscador_val_1(index_low_picos_1);
+picos_interesantes_tiempo_1 = time_buscador_val_1(index_low_picos_1)';
+%xlim([t_1(1) t_1(1000)])
+
+%%%%%%%%%%%%%%%%%GRAFICAS%%%%%%%%%%%%%%%%%%%%
+first_figure = figure(1);
+subplot(2,1,1)
+    grp_original_1 = plot(t_1,file_ECG,'b');
+    xlim([0 10])
+    set(gca,'color',[1 1 1],'linewidth',2,'fontname','times new roman','fontsize',13,'fontweight','bold')
+    xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    ylabel('$\textbf{Volt}(\mu \textbf{V})$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    legend('SEÑAL ORIGINAL','FontSize',12,'FontWeight','Bold','location','best')
+
+subplot(2,2,2)
+    plot(frec_2,Power_2,'-')
+    ylim([-0.2 2])
+    hold on
+    plot(frec_2b,Power_2b)
+    set(gca,'Color',[1 1 1],'LineWidth',2,'FontName','Times New Roman','FontSize',30,'FontWeight','Bold')
+    xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    ylabel('$f(t)$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+
+subplot(2,2,1)
+     comparativa_smooth = plot(t_1,file_ECG,'b',t_1,smooth,'r');
+     xlim([0 5])
+     legend('SEÑAL ORIGINAL','FILTRADA','FontSize',8,'FontWeight','Bold','location','best')
+     set(gca,'color',[1 1 1],'linewidth',2,'fontname','times new roman','fontsize',13,'fontweight','bold')
+     xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+     ylabel('$\textbf{Volt}(\mu \textbf{V})$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+
+subplot(2,1,2)
+    grp_smoot_1 = plot(t_1,smooth,'r-');
+    xlim([0 10])
+    set(gca,'color',[1 1 1],'linewidth',2,'fontname','times new roman','fontsize',13,'fontweight','bold')
+    xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    ylabel('$\textbf{Volt}(\mu \textbf{V})$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    hold on
+    G1 = plot(picos_interesantes_tiempo_1,picos_interesantes_1,'rv','MarkerSize',5,'MarkerEdgeColor','b','MarkerFaceColor','b');
+    legend([grp_smoot_1, G1],'Filtrada','Picos','FontSize',6,'FontWeight','Bold','location','best')
+
+
+    figure_b = figure(2);
+    set(figure_b, 'units','normalized','position',[0.05 0.05 0.85 0.85])
+
+subplot(2,1,1)
+
+    grp_original_1 = plot(t_1,arch_invert_1,'b');
+    xlim([0 10])
+    legend('SEÑAL ORIGINAL','FontSize',12,'FontWeight','Bold','location','best')
+    set(gca,'color',[1 1 1],'linewidth',2,'fontname','times new roman','fontsize',13,'fontweight','bold')
+    xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    ylabel('$\textbf{Volt}(\mu \textbf{V})$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+
+ subplot(2,1,2)
+    grp_smoot_1 = plot(t_1,smooth,'r-');
+    xlim([0 10])
+    legend('SEÑAL FILTRADA','FontSize',13,'FontWeight','Bold','location','best')
+    set(gca,'color',[1 1 1],'linewidth',2,'fontname','times new roman','fontsize',13,'fontweight','bold')
+    xlabel('$\textbf{Time(s)}$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+    ylabel('$\textbf{Volt}(\mu \textbf{V})$','Interpreter','latex','FontSize',13,'FontWeight','Bold')
+
+%%%%%%%%%%%%IMPRESION DE VALORES DE PICOS%%%%%%%%%%%%%
+
+
+    % fprintf('VALORES 1 = %g +- %g \n',picos_localizados);
+    % fprintf('VALORES 2 = %g +- %g \n',picos_localizados_step);
+    % fprintf('VALORES 3 = %g +- %g \n',picos_localizados_mem);
+    % fprintf('VALORES 4 = %g +- %g \n',index_low_picos_1);
+    % fprintf('VALORES 5 = %g +- %g \n',picos_interesantes_1);
+    % fprintf('VALORES 6 = %g +- %g \n',picos_interesantes_tiempo_1);
+    % fprintf('VALORES 7 = %g +- %g \n',picos_localizados_mem);
+
+
+%%%%%%%%%%%GENERACION DE ARCHIVO DE DISTANCIAS DEL ARCHIVO COLOCADO%%%%%%%%%%%
+    %csvwrite([h,'_DISTANCIA_ANALIZADA.TXT'],picos_interesantes_tiempo_1);
+    csvwrite([h,'_SEÑAL_FILTRADA.TXT'],t_1,smooth);
