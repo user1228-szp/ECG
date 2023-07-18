@@ -1,0 +1,63 @@
+
+#include <SoftwareSerial.h>
+
+File logFile;
+SoftwareSerial BT1(3, 4); // RX | TX
+int potenciometro;
+
+void setup(){
+  Serial.begin(9600);
+  pinMode(10, INPUT); // Setup for leads off detection LO +
+  pinMode(9, INPUT); // Setup for leads off detection LO -
+  pinMode(6, OUTPUT);        // Al poner en HIGH forzaremos el modo AT
+  pinMode(7, OUTPUT);        // cuando se alimente de aqui
+  digitalWrite(7, HIGH);
+  delay (500) ;              // Espera antes de encender el modulo
+  Serial.println("Levantando el modulo HC-06");
+  digitalWrite (6, HIGH);    //Enciende el modulo
+  Serial.println("Esperando comandos AT:");
+  BT1.begin(9600);
+
+
+  Serial.print(F("Iniciando SD ..."));
+  if (!SD.begin(8))
+  {
+    Serial.println(F("Error al iniciar"));
+    return;
+  }
+  Serial.println(F("Iniciado correctamente"));
+}
+
+
+// Funcion que simula la lectura de un sensor
+int Sensor(){
+  potenciometro = analogRead(A0);
+ int  Sensor=potenciometro;
+  Serial.println(potenciometro);
+  delay(100);
+
+}
+
+void loop(){
+  // Abrir archivo y escribir valor
+  logFile = SD.open("datalog.txt", FILE_WRITE);
+
+  if (logFile) {
+        int value = analogRead(A0);
+  /*      logFile.print("Time(ms)=");
+        logFile.print(millis());
+        logFile.print(", value=");   */
+        logFile.println(value);
+
+        logFile.close();
+  }
+  else {
+    Serial.println("Error al abrir el archivo");
+  }
+  delay(500);
+//bluetooth
+  if (BT1.available())
+     Serial.write(BT1.read());
+  if (Serial.available())
+     BT1.write(Serial.read());
+}
