@@ -5,7 +5,7 @@ Created on Mon Jul 17 09:45:54 2023
 @author: carlo
 """
 
-##########LOWPASS PYTHON
+##########LOWPASS PYTHON##########
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
