@@ -1,0 +1,15 @@
+import serial
+Arduino=serial.Serial('COM6', baudrate=9600, timeout=1.0)
+
+texto=''
+
+for i in range(1000):
+    read=Arduino.readline().decode()
+    read=read[0:len(read)-1] #Con esta instruccion limpiamos el enter extra que teniamos
+    print(read)
+    texto=texto+read
+
+archivo = open('020.txt', 'w')
+archivo.write(texto)
+archivo.close()
+print('Texto guardado')
