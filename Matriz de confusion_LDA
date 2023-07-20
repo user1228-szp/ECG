@@ -1,0 +1,232 @@
+########################## Matriz de confusion_LDA ##########################
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+import pathlib #librería para cargar datos
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from scipy.fftpack import fft, ifft
+import scipy
+
+from scipy.signal import butter,lfilter,freqz
+
+from scipy.signal import find_peaks
+
+import pathlib #librería para cargar datos
+
+import re
+
+import matplotlib.pylab as pylab
+
+from PIL import Image as im
+
+from sklearn.decomposition import PCA
+
+from sklearn import metrics
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+
+from sklearn.linear_model import LogisticRegression as LG
+
+####################################################
+
+sample=pd.read_csv('/content/drive/MyDrive/PYTHON/DATOS_10MIN/01.txt',header=None) #archivo a analizar de manera individual (low_pass, power_spectrum_fourier,color spectrum_individual)
+sample=np.array(sample).flatten()
+sample=-1*sample
+sample=sample-np.mean(sample)
+plt.figure(figsize=(15,5))
+smooth = scipy.signal.savgol_filter(sample, 10, 5, mode='nearest')
+plt.xlim(0,1000)
+plt.plot(sample)
+def butter_lowpass(cutoff, fs, order=5):
+  return butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
+
+####################################################
+
+def image_to_array(imagen):
+    size=(480,480)
+    fig=plt.figure(figsize=(4.8, 4.8))
+    fig = plt.specgram(np.array(imagen).flatten(), Fs=195, cmap="gray")
+    fig = plt.axis("off")
+    fig = plt.tight_layout()
+    fig = plt.gcf()
+    fig.canvas.draw()
+    arr = np.array(fig.canvas.renderer.buffer_rgba())
+    gray_arr = np.dot(arr[..., :3], [0.2989, 0.5870, 0.1140])
+
+    # Redimensiona el arreglo al tamaño deseado
+    resized_arr = np.resize(gray_arr, size)
+    #plt.close(fig)
+    # Retorna el arreglo redimensionado
+    return resized_arr.flatten()
+
+####################################################
+
+ejemplo_dir = '/content/drive/MyDrive/PYTHON/MUESTRAS' #carpeta donde están los datos para graficas PCA
+#tiene que estar en la nube con permisos ilimitados
+directorio = pathlib.Path(ejemplo_dir)
+nombres=[]
+for fichero in directorio.iterdir():
+    nombres.append(fichero.name)
+
+r = re.compile(r"(\d+)")
+nombres.sort(key=lambda x: int(r.search(x).group(1)))
+print(nombres)
+
+####################################################
+
+señales=[] #nuevo arreglo de señales ordenados
+
+for i in range(0,len(nombres)):
+ for fichero in directorio.iterdir():
+   if fichero.name==nombres[i]:
+   # print("true")
+    datos=pd.read_csv(fichero,names=[fichero.name])
+    señales.append(datos)
+
+####################################################
+
+def image_to_array(imagen):
+    size = (128, 128)
+    fig = plt.figure(figsize=(size[1]/100, size[0]/100))
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    plt.specgram(np.array(imagen).flatten(), Fs=195, cmap="gray")
+
+    fig.canvas.draw()
+    arr = np.array(fig.canvas.renderer.buffer_rgba())
+    gray_arr = np.dot(arr[..., :3], [0.2989, 0.5870, 0.1140])
+
+    # Redimensiona el arreglo al tamaño deseado
+    resized_arr = np.resize(gray_arr, size)
+    plt.close(fig)
+    # Retorna el arreglo redimensionado
+    return resized_arr.flatten()
+
+####################################################
+
+final=[]
+for i in range(0,len(señales)):
+  cutoff = 3.667 #cutoff frequency in rad/s
+  fs = 14 #sampling frequency in rad/s
+  order = 20 #order of filter
+  sr = 195 #sample rate
+  filtro=butter_lowpass_filter(señales[i], cutoff, fs, order)
+  smooth_muestra = scipy.signal.savgol_filter(filtro, 21, 7, mode='nearest')
+  final.append(image_to_array(smooth_muestra))
+
+####################################################
+
+filtro=butter_lowpass_filter(sample, cutoff, fs, order)
+smooth_muestra = scipy.signal.savgol_filter(filtro, 21, 7, mode='nearest')
+plt.plot(smooth_muestra[0:1000])
+plt.plot(sample[0:1000])
+
+####################################################
+
+imagee=image_to_array(señales[0]).reshape((128,128))
+
+####################################################
+
+import matplotlib.pylab as pylab
+pylab.figure(figsize=(8,8))
+pylab.axis('off')
+pylab.imshow(imagee,cmap="gray")
+
+####################################################
+
+final=[]
+for i in range(0,len(señales)):
+  cutoff = 3.667 #cutoff frequency in rad/s
+  fs = 14 #sampling frequency in rad/s
+  order = 20 #order of filter
+  sr = 195 #sample rate
+  filtro=butter_lowpass_filter(señales[i], cutoff, fs, order)
+  smooth_muestra = scipy.signal.savgol_filter(filtro, 21, 7, mode='nearest')
+  final.append(image_to_array(smooth_muestra))
+
+  ####################################################
+
+  #####MUESTRA LA CLASIFICACION DE DATOS
+y=pd.read_excel('/content/drive/MyDrive/PYTHON/DATOS SELECCIONADOS.xlsx',header=None).dropna()#EXCEL CON 1-0
+y=np.array(y[1])
+
+####################################################
+
+X_train, X_test, y_train, y_test = train_test_split(final,y ,random_state=104, test_size=0.2, shuffle=True)
+
+####################################################
+
+lda = LDA(solver="svd", store_covariance=True)
+model_lda= lda.fit(X_train, y_train)
+
+####################################################
+
+predict_lda=model_lda.predict(X_test)
+
+####################################################
+
+confusion_matrix = metrics.confusion_matrix(y_test, predict_lda)
+cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix = confusion_matrix)
+cm_display.plot()
+cm_display.ax_.set_title("Matriz de confusión clasificación por análisis de discriminante lineal")
+cm_display.ax_.set_xlabel("Dígitos predichos")
+cm_display.ax_.set_ylabel("Dígitos Reales")
+plt.show()
+
+####################################################
+
+print(metrics.classification_report(y_test.flatten(), predict_lda))
+
+####################################################
+
+qda = QDA( store_covariance=True)
+model_qda= qda.fit(X_train, y_train)
+
+####################################################
+
+predict_qda=model_qda.predict(X_test)
+
+####################################################
+
+print(metrics.classification_report(y_test.flatten(), predict_qda))
+
+####################################################
+
+clf = LG(solver='newton-cg', max_iter=10000, random_state=42).fit(X_train, y_train)
+
+####################################################
+
+predict_logit=clf.predict(X_test)
+
+####################################################
+
+print(metrics.classification_report(y_test.flatten(), predict_logit))
+
+####################################################
+
+confusion_matrix = metrics.confusion_matrix(y_test, predict_logit)
+cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix = confusion_matrix)
+cm_display.plot()
+cm_display.ax_.set_title("Matriz de confusión clasificación por análisis de discriminante lineal")
+cm_display.ax_.set_xlabel("Dígitos predichos")
+cm_display.ax_.set_ylabel("Dígitos Reales")
+plt.show()
+
+####################################################
+
+plt.hist(y)
