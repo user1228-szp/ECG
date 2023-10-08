@@ -1,0 +1,249 @@
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+
+#Al principio de cada sección, se agrega el nombre de la persona que la elaboró
+##correr en GPU
+##se importan las clases necesarias para el uso
+import os
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import pathlib #librería para cargar datos
+import numpy as np
+import pandas as pd
+import re
+
+#el framework tensorflow nos ayuda a construir de forma rápida y eficiente una red neuronal
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
+
+import scipy
+from scipy.signal import butter,lfilter,freqz
+from scipy.signal import find_peaks
+
+from tensorflow.keras.utils import to_categorical
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter)
+from dataclasses import dataclass
+
+import re
+
+#el framework tensorflow nos ayuda a construir de forma rápida y eficiente una red neuronal
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten
+
+from tensorflow.keras.utils import to_categorical
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter)
+from dataclasses import dataclass
+print(tf.__version__)
+print(tf.config.list_physical_devices('GPU'))
+
+
+import statsmodels.api as sm
+from sklearn import metrics
+from sklearn.model_selection import cross_val_score, train_test_split, KFold,StratifiedKFold
+from sklearn.model_selection import train_test_split
+
+import joblib
+import random
+
+import tensorflow.keras as keras
+import tensorflow.keras.layers as layers
+
+import statsmodels.api as sm
+
+from PIL import Image as im
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+################
+def butter_lowpass(cutoff, fs, order=5):
+    return scipy.signal.butter(order, cutoff, fs=fs, btype='low', analog=False)
+##############
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    y = scipy.signal.lfilter(b, a, data)
+    return y
+############
+
+def image_to_array(imagen):
+    size = (128, 128)
+    fig = plt.figure(figsize=(size[1]/100, size[0]/100))
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    plt.specgram(np.array(imagen).flatten(), Fs=195, cmap="gray")
+
+    fig.canvas.draw()
+    arr = np.array(fig.canvas.renderer.buffer_rgba())
+    gray_arr = np.dot(arr[..., :3], [0.2989, 0.5870, 0.1140])
+
+    # Redimensiona el arreglo al tamaño deseado
+    resized_arr = np.resize(gray_arr, size)
+    plt.close(fig)
+    # Retorna el arreglo redimensionado
+    return resized_arr
+############
+
+ejemplo_dir = '/content/drive/MyDrive/PYTHON/MUESTRAS' #carpeta donde están los datos
+#tiene que estar en la nube con permisos ilimitados
+directorio = pathlib.Path(ejemplo_dir)
+nombres=[]
+for fichero in directorio.iterdir():
+    nombres.append(fichero.name)
+
+
+r = re.compile(r"(\d+)")
+nombres.sort(key=lambda x: int(r.search(x).group(1)))
+print(nombres)
+#########
+
+señales=[] #nuevo arreglo de señales ordenados
+
+for i in range(0,len(nombres)):
+ for fichero in directorio.iterdir():
+   if fichero.name==nombres[i]:
+   # print("true")
+    datos=pd.read_csv(fichero,names=[fichero.name])
+    señales.append(datos)
+############
+
+final=[]
+filtradas=[]
+
+for i in range(0,len(señales)):
+  cutoff = 3.667 #cutoff frequency in rad/s
+  fs = 14 #sampling frequency in rad/s
+  order = 20 #order of filter
+  sr = 195 #sample rate
+  filtro=butter_lowpass_filter(señales[i], cutoff, fs, order)
+  smooth_muestra = -1*scipy.signal.savgol_filter(filtro.flatten(), 21, 7)
+  filtradas.append(smooth_muestra)
+  final.append(image_to_array(señales[i]))
+#############
+
+final=np.array(final)/255
+final.shape
+
+#########
+y=pd.read_excel('/content/drive/MyDrive/PYTHON/DATOS_SELECCIONADOS.xlsx',header=None).dropna()
+y=np.array(y).flatten()
+########
+
+from sklearn.model_selection import train_test_split
+
+# Supongamos que tienes tus datos almacenados en las listas o arrays X e y (características y etiquetas, respectivamente)
+
+# Primero, dividimos los datos en train y el resto (combinado de test y validation)
+X_train, X_temp, y_train, y_temp = train_test_split(final, y, test_size=0.3, random_state=42)
+
+# Luego, dividimos el conjunto restante (test y validation) en partes iguales para test y validation
+X_test, X_val, y_test, y_val = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+#################
+
+def plot_results(metrics, title=None, ylabel=None, ylim=None, metric_name=None, color=None):
+
+    fig, ax = plt.subplots(figsize=(15, 4))
+
+    if not (isinstance(metric_name, list) or isinstance(metric_name, tuple)):
+        metrics = [metrics,]
+        metric_name = [metric_name,]
+
+    for idx, metric in enumerate(metrics):
+        ax.plot(metric, color=color[idx])
+    #se hace la grafica
+    plt.xlabel("Epoch")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xlim([0, TrainingConfig.EPOCHS-1])
+    plt.ylim(ylim)
+
+    ax.xaxis.set_major_locator(MultipleLocator(5))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    plt.grid(True)
+    plt.legend(metric_name)
+    plt.show()
+    plt.close()
+###############
+
+model = keras.Sequential([
+    # Block One
+    layers.Conv2D(filters=210, kernel_size=3, activation='relu', padding='same',
+                  input_shape=[128, 128, 1]),
+    layers.MaxPool2D(),
+
+    # Block two
+    layers.Conv2D(filters=250,kernel_size=3, activation='relu', padding='same'),
+    layers.MaxPool2D(),
+    layers.Dropout(0.2),
+
+    # Block thre
+    layers.Conv2D(filters=120,kernel_size=3, activation='relu', padding='same'),
+    layers.MaxPool2D(),
+    layers.Dropout(0.2),
+
+    # Block four
+    layers.Conv2D(filters=210, kernel_size=3, activation='relu', padding='same'),
+    layers.MaxPool2D(),
+    layers.Dropout(0.2),
+
+    # Head
+    layers.Flatten(),
+    layers.Dense(1024, activation='sigmoid'),
+    layers.Dropout(0.5),
+    layers.Dense(1024, activation='sigmoid'),
+    layers.Dropout(0.5),
+    layers.Dense(1, activation='sigmoid'),])
+
+from keras.optimizers import Adam
+
+model.compile(
+    optimizer="RMSprop",
+    loss='binary_crossentropy',
+    metrics=['binary_accuracy'],)
+
+y.shape
+##############
+
+imagee=image_to_array(señales[1]).reshape((128,128))
+import matplotlib.pylab as pylab
+pylab.figure(figsize=(8,8))
+pylab.axis('off')
+pylab.imshow(imagee,cmap="gray")
+
+print(imagee)
+##################
+img_array=image_to_array(señales[1]).reshape((128,128))
+print(señales)
+model.summary()
+
+history = model.fit(X_train,
+                    y_train,
+                    epochs=200,
+                    verbose=1, validation_data=(X_val, y_val),)
+
+##########
+test_loss, test_acc = model.evaluate(X_test, y_test)
+print(f"Test accuracy: {test_acc*100:.3f}")
+
+###########
+train_loss = history.history["loss"]
+train_acc  = history.history["binary_accuracy"]
+valid_loss = history.history["val_loss"]
+valid_acc  = history.history["val_binary_accuracy"]
+
+plot_results([train_loss, valid_loss ], ylabel="Loss", ylim = [0.0, 5.0], metric_name=["Training Loss", "Validation Loss"], color=["g", "b"]);
+
+plot_results([ train_acc, valid_acc ], ylabel="Accuracy", ylim = [0.0, 1.0], metric_name=["Training Accuracy", "Validation Accuracy"], color=["g", "b"])
+##########
+
+predictions = model.predict(X_test)
+predicted_labels = [np.argmax(i) for i in predictions]
+#################
