@@ -2,8 +2,6 @@
 from google.colab import drive
 drive.mount('/content/drive')
 
-
-#Al principio de cada sección, se agrega el nombre de la persona que la elaboró
 ##correr en GPU
 ##se importan las clases necesarias para el uso
 import os
